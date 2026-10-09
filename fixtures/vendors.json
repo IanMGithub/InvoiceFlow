@@ -1,0 +1,16 @@
+[
+    {
+        "vendor_code": "VENDOR-001",
+        "name": "Northstar Office Supply",
+        "aliases": [
+            "Northstar Office Supply LLC"
+        ]
+    },
+    {
+        "vendor_code": "VENDOR-002",
+        "name": "Southstar Office Supply",
+        "aliases": [
+            "Southstar Office Supply LLC"
+        ]
+    }
+]

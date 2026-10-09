@@ -1,0 +1,23 @@
+{
+    "invoice_number": "INV-1002",
+    "vendor_name": "Northstar Office Supply",
+    "po_reference": "PO-1001",
+    "currency": "USD",
+    "stated_total_cents": 240000,
+    "line_items": [
+        {
+            "item_code": "PAPER-A4",
+            "description": "A4 paper cases",
+            "quantity": 10,
+            "unit_price_cents": 15000,
+            "stated_line_total_cents": 150000
+        },
+        {
+            "item_code": "TONER-BK",
+            "description": "Black toner",
+            "quantity": 6,
+            "unit_price_cents": 15000,
+            "stated_line_total_cents": 90000
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+[
+    {
+        "po_number": "PO-1001",
+        "vendor_code": "VENDOR-001",
+        "currency": "USD",
+        "total_cents": 210000,
+        "line_items": [
+            {
+                "item_code": 210000,
+                "description": "A4 paper cases",
+                "quantity": 10,
+                "unit_price_cents": 12000,
+                "line_total_cents": 120000
+            },
+            {
+                "item_code": "TONER-BK",
+                "description": "Black toner",
+                "quantity": 6,
+                "unit_price_cents": 15000,
+                "line_total_cents": 90000
+            }
+        ]
+    }
+]
