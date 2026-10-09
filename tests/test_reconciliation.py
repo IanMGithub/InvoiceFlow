@@ -1,4 +1,4 @@
-from app.reconciliation import compare_totals, compare_unit_prices
+from app.reconciliation import compare_totals, compare_line_items
 
 
 def test_matching_totals_return_no_issues():
@@ -44,15 +44,27 @@ def test_different_totals_return_negative_difference():
 
 def test_unmatched_item_does_not_stop_other_price_checks():
     invoice_lines = [
-        {"item_code": "UNKNOWN-ITEM", "unit_price_cents": 1000},
-        {"item_code": "PAPER-A4", "unit_price_cents": 15000},
+        {
+            "item_code": "UNKNOWN-ITEM",
+            "quantity": 1,
+            "unit_price_cents": 1000
+        },
+        {
+            "item_code": "PAPER-A4",
+            "quantity": 1,
+            "unit_price_cents": 15000
+        },
     ]
 
     po_lines = [
-        {"item_code": "PAPER-A4", "unit_price_cents": 12000},
+        {
+            "item_code": "PAPER-A4",
+            "quantity": 1,
+            "unit_price_cents": 12000
+        },
     ]
 
-    issues = compare_unit_prices(invoice_lines, po_lines)
+    issues = compare_line_items(invoice_lines, po_lines)
 
     assert issues == [
         {
@@ -79,7 +91,7 @@ def test_multiple_po_matches_return_ambiguity_issue():
         {"item_code": "PAPER-A4", "unit_price_cents": 13000},
     ]
 
-    issues = compare_unit_prices(invoice_lines, po_lines)
+    issues = compare_line_items(invoice_lines, po_lines)
 
     assert issues == [
         {

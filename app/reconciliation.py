@@ -15,7 +15,7 @@ def compare_totals(
         ]
 
 
-def compare_unit_prices(
+def compare_line_items(
     invoice_lines: list[dict],
     po_lines: list[dict],
 ) -> list[dict]:
@@ -28,10 +28,6 @@ def compare_unit_prices(
             for po_line in po_lines
             if po_line["item_code"] == item_code
         ]
-
-        print("Invoice item code:", repr(item_code))
-        print("PO item codes:", [repr(line["item_code"]) for line in po_lines])
-        print("Matching PO line count:", len(matching_po_lines))
 
         if len(matching_po_lines) == 0:
             issues.append(
@@ -53,6 +49,20 @@ def compare_unit_prices(
             continue
 
         po_line = matching_po_lines[0]
+        invoice_quantity = invoice_line["quantity"]
+        po_quantity = po_line["quantity"]
+
+        if invoice_quantity != po_quantity:
+            issues.append(
+                {
+                    "code": "QUANTITY_MISMATCH",
+                    "item_code": item_code,
+                    "expected_quantity": po_quantity,
+                    "observed_quantity": invoice_quantity,
+                    "difference_quantity": invoice_quantity - po_quantity,
+                }
+            )
+
         invoice_price = invoice_line["unit_price_cents"]
         po_price = po_line["unit_price_cents"]
 
@@ -66,4 +76,23 @@ def compare_unit_prices(
                     "difference_cents": invoice_price - po_price,
                 }
             )
+    return issues
+
+
+def reconcile_invoice(
+    invoice: dict,
+    po: dict,
+) -> list[dict]:
+    issues = compare_line_items(
+        invoice_lines=invoice["line_items"],
+        po_lines=po["line_items"],
+    )
+
+    issues.extend(
+        compare_totals(
+            invoice_total_cents=invoice["stated_total_cents"],
+            po_total_cents=po["total_cents"],
+        )
+    )
+
     return issues
