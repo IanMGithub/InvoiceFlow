@@ -1,7 +1,13 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import JSON, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+
+
+def _utc_now():
+    return datetime.now(timezone.utc)
 
 
 class Vendor(Base):
@@ -50,3 +56,21 @@ class PurchaseOrderLine(Base):
     quantity: Mapped[int]
     unit_price_cents: Mapped[int]
     line_total_cents: Mapped[int]
+
+
+class InvoiceProcessingResult(Base):
+    __tablename__ = "invoice_processing_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    invoice_number: Mapped[str]
+    vendor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("vendors.id"),
+        nullable=True,
+    )
+    purchase_order_id: Mapped[int | None] = mapped_column(
+        ForeignKey("purchase_orders.id"),
+        nullable=True,
+    )
+    status: Mapped[str]
+    issues: Mapped[list] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(default=_utc_now)
