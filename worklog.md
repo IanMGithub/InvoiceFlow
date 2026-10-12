@@ -1,23 +1,13 @@
 Built:
-- Deterministic reconciliation with eleven passing tests.
-- Persistent vendors, purchase orders, and PO lines in SQLite.
-- Seed and verification scripts.
+- Vendor matching by exact normalized canonical name or explicit alias, with unmatched and ambiguous outcomes.
+- Purchase-order matching by PO number, including ownership verification against the matched vendor.
+- Invoice processing service (`process_invoice`) that matches vendor and PO, checks currency, and reconciles the invoice.
+- Reconciliation integration: line-item and total checks run after a successful match; issues are returned without stopping processing.
+- Result persistence: one `InvoiceProcessingResult` row per call, storing invoice number, nullable vendor/PO IDs, status, and issues JSON. The raw invoice payload is not saved yet.
 
-Learned:
-- Fixture data differs from saved database records.
-- Foreign keys reference database primary-key IDs.
-- Flush obtains IDs without committing the transaction.
-- Matching reference data is separate from checking an invoice.
-
-Problems solved:
-- Import/file-placement errors.
-- Incorrect fixture item code.
-- Missing quantities in test inputs.
-- Misspelled foreign-key table reference.
+Tests:
+- 26 isolated tests: reconciliation (10), vendor matching (6), PO matching (3), and invoice processing (7).
 
 Unfinished:
-- Incoming invoices are not stored yet.
+- Raw invoice payload is not stored.
 - No invoice-processing API, AI extraction, or review workflow yet.
-
-Next task:
-- Match an invoice fixture to saved vendor/PO records and reconcile it.
