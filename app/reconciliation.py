@@ -76,6 +76,21 @@ def compare_line_items(
                     "difference_cents": invoice_price - po_price,
                 }
             )
+
+    invoice_item_codes = {
+        invoice_line["item_code"]
+        for invoice_line in invoice_lines
+    }
+
+    for po_line in po_lines:
+        if po_line["item_code"] not in invoice_item_codes:
+            issues.append(
+                {
+                    "code": "PO_ITEM_MISSING_FROM_INVOICE",
+                    "item_code": po_line["item_code"],
+                }
+            )
+
     return issues
 
 
@@ -83,10 +98,49 @@ def reconcile_invoice(
     invoice: dict,
     po: dict,
 ) -> list[dict]:
+    invoice_lines = invoice["line_items"]
+
     issues = compare_line_items(
-        invoice_lines=invoice["line_items"],
+        invoice_lines=invoice_lines,
         po_lines=po["line_items"],
     )
+
+    for invoice_line in invoice_lines:
+        quantity = invoice_line["quantity"]
+        unit_price_cents = invoice_line["unit_price_cents"]
+        stated_line_total_cents = invoice_line["stated_line_total_cents"]
+        expected_cents = quantity * unit_price_cents
+
+        if stated_line_total_cents != expected_cents:
+            issues.append(
+                {
+                    "code": "INVOICE_LINE_TOTAL_MISMATCH",
+                    "item_code": invoice_line["item_code"],
+                    "expected_cents": expected_cents,
+                    "observed_cents": stated_line_total_cents,
+                    "difference_cents": (
+                        stated_line_total_cents - expected_cents
+                    ),
+                }
+            )
+
+    invoice_line_total_sum = sum(
+        invoice_line["stated_line_total_cents"]
+        for invoice_line in invoice_lines
+    )
+    stated_total_cents = invoice["stated_total_cents"]
+
+    if stated_total_cents != invoice_line_total_sum:
+        issues.append(
+            {
+                "code": "INVOICE_TOTAL_MISMATCH",
+                "expected_cents": invoice_line_total_sum,
+                "observed_cents": stated_total_cents,
+                "difference_cents": (
+                    stated_total_cents - invoice_line_total_sum
+                ),
+            }
+        )
 
     issues.extend(
         compare_totals(
