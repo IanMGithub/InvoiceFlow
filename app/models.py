@@ -62,7 +62,7 @@ class InvoiceProcessingResult(Base):
     __tablename__ = "invoice_processing_results"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    invoice_number: Mapped[str]
+    invoice_number: Mapped[str | None] = mapped_column(nullable=True)
     vendor_id: Mapped[int | None] = mapped_column(
         ForeignKey("vendors.id"),
         nullable=True,

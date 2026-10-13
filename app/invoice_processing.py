@@ -7,12 +7,61 @@ from app.models import (
     PurchaseOrder,
     PurchaseOrderLine,
 )
-from app.reconciliation import reconcile_invoice
+from app.reconciliation import (
+    compare_line_items,
+    compare_totals,
+    reconcile_invoice,
+)
+from app.validation import validate_invoice
+
+
+HEADER_VALIDATION_FIELDS = {
+    "invoice",
+    "invoice_number",
+    "vendor_name",
+    "po_reference",
+    "currency",
+    "stated_total_cents",
+}
+
+
+def _available_invoice_number(invoice):
+    if not isinstance(invoice, dict):
+        return None
+
+    raw_invoice_number = invoice.get("invoice_number")
+
+    if (
+        isinstance(raw_invoice_number, str)
+        and raw_invoice_number.strip() != ""
+    ):
+        return raw_invoice_number
+
+    return None
+
+
+def _has_header_validation_issues(issues):
+    return any(
+        issue.get("field") in HEADER_VALIDATION_FIELDS
+        for issue in issues
+    )
+
+
+def _has_stated_line_totals(invoice):
+    line_items = invoice.get("line_items")
+
+    if not isinstance(line_items, list) or len(line_items) == 0:
+        return False
+
+    return all(
+        isinstance(line, dict) and "stated_line_total_cents" in line
+        for line in line_items
+    )
 
 
 def _save_result(
     session: Session,
-    invoice_number: str,
+    invoice_number: str | None,
     vendor_id: int | None,
     purchase_order_id: int | None,
     status: str,
@@ -39,7 +88,19 @@ def _save_result(
 
 
 def process_invoice(session: Session, invoice: dict) -> dict:
-    invoice_number = invoice["invoice_number"]
+    validation_issues = validate_invoice(invoice)
+
+    if _has_header_validation_issues(validation_issues):
+        return _save_result(
+            session,
+            invoice_number=_available_invoice_number(invoice),
+            vendor_id=None,
+            purchase_order_id=None,
+            status="invalid_invoice",
+            issues=validation_issues,
+        )
+
+    invoice_number = _available_invoice_number(invoice)
 
     vendor_result = match_vendor(session, invoice["vendor_name"])
 
@@ -122,7 +183,19 @@ def process_invoice(session: Session, invoice: dict) -> dict:
         ],
     }
 
-    issues = reconcile_invoice(invoice, po)
+    if _has_stated_line_totals(invoice):
+        issues = reconcile_invoice(invoice, po)
+    else:
+        issues = compare_line_items(
+            invoice_lines=invoice["line_items"],
+            po_lines=po["line_items"],
+        )
+        issues.extend(
+            compare_totals(
+                invoice_total_cents=invoice["stated_total_cents"],
+                po_total_cents=po["total_cents"],
+            )
+        )
 
     return _save_result(
         session,
