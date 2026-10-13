@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Invoice processing</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <header>
+      <h1>Invoice processing</h1>
+      <p>Local development interface for submitting JSON invoices.</p>
+    </header>
+
+    <main>
+      <section id="invoice-form-section" aria-labelledby="invoice-form-heading">
+        <h2 id="invoice-form-heading">Invoice form</h2>
+        <form id="invoice-form">
+          <div class="field">
+            <label for="invoice-number">Invoice number</label>
+            <input id="invoice-number" name="invoice_number" type="text" required>
+          </div>
+          <div class="field">
+            <label for="vendor-name">Vendor name</label>
+            <input id="vendor-name" name="vendor_name" type="text" required>
+          </div>
+          <div class="field">
+            <label for="po-reference">PO reference</label>
+            <input id="po-reference" name="po_reference" type="text" required>
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <input id="currency" name="currency" type="text" required maxlength="3">
+          </div>
+          <div class="field">
+            <label for="stated-total-cents">Stated total in cents</label>
+            <input id="stated-total-cents" name="stated_total_cents" type="number" required>
+          </div>
+
+          <fieldset>
+            <legend>Line items</legend>
+            <div id="line-items">
+              <div class="line-item" data-line-item="true">
+                <div class="field">
+                  <label for="item-code-1">Item code</label>
+                  <input id="item-code-1" name="item_code" type="text" required>
+                </div>
+                <div class="field">
+                  <label for="description-1">Description</label>
+                  <input id="description-1" name="description" type="text" required>
+                </div>
+                <div class="field">
+                  <label for="quantity-1">Quantity</label>
+                  <input id="quantity-1" name="quantity" type="number" required>
+                </div>
+                <div class="field">
+                  <label for="unit-price-1">Unit price in cents</label>
+                  <input id="unit-price-1" name="unit_price_cents" type="number" required>
+                </div>
+                <div class="field">
+                  <label for="line-total-1">Stated line total in cents</label>
+                  <input id="line-total-1" name="stated_line_total_cents" type="number" required>
+                </div>
+                <button type="button" class="remove-line-item">Remove line item</button>
+              </div>
+            </div>
+            <button type="button" id="add-line-item">Add line item</button>
+          </fieldset>
+
+          <div class="actions">
+            <button type="submit" id="submit-invoice">Submit invoice</button>
+            <button type="button" id="load-sample">Load sample invoice</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="result-panel" aria-labelledby="result-heading">
+        <h2 id="result-heading">Result</h2>
+        <p id="result-message" class="status-message" aria-live="polite">
+          Submit an invoice to see the processing result.
+        </p>
+        <dl id="result-summary" hidden>
+          <div>
+            <dt>HTTP status</dt>
+            <dd id="result-http-status"></dd>
+          </div>
+          <div>
+            <dt>Overall status</dt>
+            <dd id="result-status"></dd>
+          </div>
+          <div>
+            <dt>Ingestion ID</dt>
+            <dd id="result-ingestion-id"></dd>
+          </div>
+          <div>
+            <dt>Processing result ID</dt>
+            <dd id="result-processing-id"></dd>
+          </div>
+          <div>
+            <dt>Vendor ID</dt>
+            <dd id="result-vendor-id"></dd>
+          </div>
+          <div>
+            <dt>Purchase order ID</dt>
+            <dd id="result-po-id"></dd>
+          </div>
+        </dl>
+        <h3>Reconciliation issues</h3>
+        <ul id="result-issues"></ul>
+        <details id="result-json-details">
+          <summary>Full JSON response</summary>
+          <pre id="result-json"></pre>
+        </details>
+      </section>
+
+      <section id="lookup-panel" aria-labelledby="lookup-heading">
+        <h2 id="lookup-heading">Lookup</h2>
+        <form id="lookup-form">
+          <div class="field">
+            <label for="lookup-id">Processing result ID</label>
+            <input id="lookup-id" name="processing_result_id" type="number" min="1" required>
+          </div>
+          <button type="submit" id="lookup-submit">Look up processing result</button>
+        </form>
+        <p id="lookup-message" class="status-message" aria-live="polite"></p>
+        <pre id="lookup-json"></pre>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
