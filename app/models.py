@@ -74,3 +74,23 @@ class InvoiceProcessingResult(Base):
     status: Mapped[str]
     issues: Mapped[list] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(default=_utc_now)
+
+
+class InvoiceSource(Base):
+    __tablename__ = "invoice_sources"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_type: Mapped[str] = mapped_column(default="json_file")
+    source_reference: Mapped[str]
+    content_hash: Mapped[str] = mapped_column(unique=True)
+    invoice_number: Mapped[str | None] = mapped_column(nullable=True)
+    status: Mapped[str]
+    processing_result_id: Mapped[int | None] = mapped_column(
+        ForeignKey("invoice_processing_results.id"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        default=_utc_now,
+        onupdate=_utc_now,
+    )
