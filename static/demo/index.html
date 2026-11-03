@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>InvoiceFlow demo</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <p class="eyebrow">Sample-only portfolio demo</p>
+      <h1>InvoiceFlow</h1>
+      <p class="lede">
+        Accounts payable teams need to see whether an invoice agrees with the
+        purchase order before anyone treats it as ready. This page runs those
+        checks on three synthetic invoices.
+      </p>
+    </header>
+
+    <main id="main">
+      <section aria-labelledby="try-heading">
+        <h2 id="try-heading">Try a sample</h2>
+        <p>
+          Choose an example. The server allows only these three identifiers.
+          Results were computed when this demo process started, from project
+          fixtures. A click shows that stored result and does not insert another
+          invoice.
+        </p>
+        <div class="example-list">
+          <article class="example-card">
+            <h3>Clean invoice</h3>
+            <p>
+              INV-1001 bills Northstar Office Supply purchase order PO-1001
+              for the ordered quantities and unit prices.
+            </p>
+            <p>Expected outcome: No issues found by the implemented checks.</p>
+            <button type="button" data-sample-id="valid">Run clean invoice</button>
+          </article>
+          <article class="example-card">
+            <h3>Quantity mismatch</h3>
+            <p>
+              INV-1003 bills 5 units of toner. PO-1001 ordered 6. The invoice
+              line totals agree with its own quantities and prices.
+            </p>
+            <p>
+              Expected outcome: a quantity mismatch and a purchase-order total
+              mismatch.
+            </p>
+            <button type="button" data-sample-id="quantity-mismatch">
+              Run quantity mismatch
+            </button>
+          </article>
+          <article class="example-card">
+            <h3>Unit price mismatch</h3>
+            <p>
+              INV-1002 bills paper at a higher unit price than PO-1001. The
+              invoice line totals agree with its own quantities and prices.
+            </p>
+            <p>
+              Expected outcome: a unit-price mismatch and a purchase-order
+              total mismatch.
+            </p>
+            <button type="button" data-sample-id="price-mismatch">
+              Run unit price mismatch
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section id="result-section" aria-labelledby="result-heading">
+        <h2 id="result-heading" tabindex="-1">Result</h2>
+        <p id="result-status" class="status" role="status" aria-live="polite">
+          Choose an example to see its startup result.
+        </p>
+        <article id="result-card" class="result-card" hidden>
+          <h3 id="result-title"></h3>
+          <p id="result-scenario"></p>
+          <p id="result-timing"></p>
+          <dl>
+            <div>
+              <dt>Invoice number</dt>
+              <dd id="result-invoice-number"></dd>
+            </div>
+            <div>
+              <dt>Processing status</dt>
+              <dd id="result-processing-status"></dd>
+            </div>
+            <div>
+              <dt>Vendor record</dt>
+              <dd id="result-vendor-id"></dd>
+            </div>
+            <div>
+              <dt>Purchase order record</dt>
+              <dd id="result-po-id"></dd>
+            </div>
+          </dl>
+          <p id="result-meaning"></p>
+          <h4>Issues found by the implemented checks</h4>
+          <ul id="result-issues"></ul>
+        </article>
+        <details id="result-json-details">
+          <summary>Technical JSON response</summary>
+          <pre id="result-json"></pre>
+        </details>
+      </section>
+
+      <section aria-labelledby="workflow-heading">
+        <h2 id="workflow-heading">How this demo works</h2>
+        <ol class="workflow">
+          <li>The page sends an allowlisted sample id. It does not send invoice fields or a file.</li>
+          <li>At startup the demo loads synthetic vendors and purchase orders into a fresh in-memory database and runs the existing checks once.</li>
+          <li>Validation confirms the invoice shape. Matching finds the vendor and purchase order. Reconciliation compares quantities, prices, and totals.</li>
+          <li>The browser renders the stored result. PDF extraction and the model call are not on this path.</li>
+        </ol>
+        <p>
+          Text-based PDF extraction exists in the separate local prototype. It
+          is disabled on this public website. This page does not upload
+          documents or call an AI model.
+        </p>
+      </section>
+
+      <section aria-labelledby="limits-heading">
+        <h2 id="limits-heading">Limitations</h2>
+        <ul>
+          <li>The invoices, vendors, and purchase orders are synthetic.</li>
+          <li>A status of matched means the vendor and purchase order were found and the checks ran. It does not mean the invoice is approved or safe to pay.</li>
+          <li>There is no human approval workflow, OCR, payment execution, or customer invoicing product on this website.</li>
+          <li>The checks cover this prototype's rules only: one purchase order, whole-order billing, and no tax, freight, or receipts.</li>
+          <li>The request limit is in-memory and applies to this single process. It is not distributed rate limiting and it is not DDoS protection.</li>
+          <li>Restarting the process rebuilds the demo database from fixtures.</li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="privacy-heading">
+        <h2 id="privacy-heading">Privacy</h2>
+        <p>
+          The application processes only the curated sample id. It does not
+          store a new invoice for each visit. The server log can still record
+          the request method, path, status, and client address. A host or
+          reverse proxy may retain connection metadata, including IP addresses.
+          API responses are sent with a <code>no-store</code> cache directive.
+          This note describes the demo's behavior. It is not legal advice.
+        </p>
+      </section>
+
+      <section aria-labelledby="links-heading">
+        <h2 id="links-heading">Project links</h2>
+        <p id="links-note">
+          Source code, walkthrough, and contact links appear here when the
+          site operator configures them.
+        </p>
+        <ul id="project-link-list"></ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>InvoiceFlow sample demo. Synthetic data only.</p>
+    </footer>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

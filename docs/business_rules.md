@@ -1,3 +1,13 @@
+# Implementation status
+
+The matching, validation, and reconciliation rules below are what the prototype runs.
+
+Review rules and the idempotency-key duplicate rules are design intent. The code does not store review events, and it does not expose an approval endpoint. The local JSON and PDF paths dedupe by content hash. The public demo does not accept visitor invoices, so it does not create a new record per click.
+
+A processing status of `matched` means the vendor and purchase order were found and the checks ran. It does not mean a person approved the invoice.
+
+# Business rules
+
 Supported invoices
 
 One invoice references one purchase order.

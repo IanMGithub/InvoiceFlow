@@ -11,11 +11,17 @@ DATABASE_PATH = PROJECT_DIR / "invoiceflow.db"
 engine = create_engine(f"sqlite:///{DATABASE_PATH}")
 
 
-@event.listens_for(engine, "connect")
 def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
+
+
+def listen_for_sqlite_foreign_keys(target_engine):
+    event.listen(target_engine, "connect", enable_sqlite_foreign_keys)
+
+
+listen_for_sqlite_foreign_keys(engine)
 
 
 class Base(DeclarativeBase):

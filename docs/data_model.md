@@ -1,3 +1,9 @@
+# Implementation status
+
+The running prototype stores `vendors`, `purchase_orders`, `purchase_order_lines`, `invoice_processing_results`, and `invoice_sources`, as defined in `app/models.py`.
+
+The `invoices`, `invoice_lines`, `invoice_issues`, and `review_events` sections below are a future design. Those tables are not created, and there is no review API. The public demo uses the same implemented tables in a fresh in-memory database and does not add the future ones.
+
 # InvoiceFlow Data Model
 
 ## vendors
@@ -141,7 +147,7 @@ It matches each invoice line to a purchase-order line using the item code.
 
 It compares quantities, unit prices, line totals, and the invoice total under our defined business rules.
 
-Because this invoice matches and has no issues, the system saves its data and relationships with the status ready_for_review.
+Because this invoice matches and has no issues, the future design described a status of ready_for_review. The implemented processor stores status matched and an empty issue list.
 
 A human has not approved it yet. Approval will be a separate saved review action, and it will not trigger payment.
 

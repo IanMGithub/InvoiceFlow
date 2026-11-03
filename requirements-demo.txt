@@ -1,0 +1,4 @@
+# Public demo runtime only. The local prototype keeps requirements.txt.
+fastapi==0.143.0
+uvicorn==0.54.0
+sqlalchemy==2.0.54
