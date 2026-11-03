@@ -1,5 +1,6 @@
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 from sqlalchemy import select
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.invoice_processing import process_invoice
 from app.models import InvoiceSource
+from app.pdf_extraction import extract_invoice_from_text, extract_pdf_text
 
 
 def _ingestion_result(
@@ -108,4 +110,172 @@ def ingest_invoice_file(session: Session, file_path: Path) -> dict:
         status="ingested",
         processing_result_id=processing_result.get("id"),
         processing_result=processing_result,
+    )
+
+
+def _pdf_ingestion_result(
+    *,
+    ingestion_id,
+    source_reference,
+    content_hash,
+    status,
+    processing_result_id=None,
+    processing_result=None,
+    extraction_issues=None,
+):
+    return {
+        "ingestion_id": ingestion_id,
+        "source_type": "pdf_file",
+        "source_reference": source_reference,
+        "content_hash": content_hash,
+        "status": status,
+        "processing_result_id": processing_result_id,
+        "processing_result": processing_result,
+        "extraction_issues": extraction_issues,
+    }
+
+
+def _is_pdf_filename(file_name: str) -> bool:
+    return isinstance(file_name, str) and file_name.lower().endswith(".pdf")
+
+
+def _extracted_invoice_dict(extracted):
+    if hasattr(extracted, "model_dump"):
+        extracted = extracted.model_dump()
+
+    if isinstance(extracted, dict):
+        return dict(extracted)
+
+    return None
+
+
+def ingest_invoice_pdf(
+    session: Session,
+    file_name: str,
+    file_bytes: bytes,
+    extractor: Callable[[str], tuple[dict | None, list[dict] | None]] | None = None,
+) -> dict:
+    if not _is_pdf_filename(file_name):
+        return _pdf_ingestion_result(
+            ingestion_id=None,
+            source_reference=file_name,
+            content_hash=None,
+            status="extraction_failed",
+            extraction_issues=[
+                {
+                    "code": "UNSUPPORTED_FILE",
+                    "message": "Only PDF files can be ingested.",
+                }
+            ],
+        )
+
+    content_hash = hashlib.sha256(file_bytes).hexdigest()
+
+    existing_source = session.scalar(
+        select(InvoiceSource).where(
+            InvoiceSource.content_hash == content_hash
+        )
+    )
+
+    if existing_source is not None:
+        return _pdf_ingestion_result(
+            ingestion_id=existing_source.id,
+            source_reference=file_name,
+            content_hash=existing_source.content_hash,
+            status="duplicate",
+            processing_result_id=existing_source.processing_result_id,
+            processing_result=None,
+            extraction_issues=None,
+        )
+
+    raw_text, text_error = extract_pdf_text(file_bytes)
+
+    if raw_text is None:
+        source = InvoiceSource(
+            source_type="pdf_file",
+            source_reference=file_name,
+            content_hash=content_hash,
+            invoice_number=None,
+            status="extraction_failed",
+            processing_result_id=None,
+        )
+        session.add(source)
+        session.commit()
+        return _pdf_ingestion_result(
+            ingestion_id=source.id,
+            source_reference=file_name,
+            content_hash=content_hash,
+            status="extraction_failed",
+            extraction_issues=[
+                {
+                    "code": "PDF_TEXT_EXTRACTION_FAILED",
+                    "message": text_error
+                    or "The PDF text could not be extracted.",
+                }
+            ],
+        )
+
+    extract_fn = (
+        extractor if extractor is not None else extract_invoice_from_text
+    )
+
+    try:
+        extracted, extraction_issues = extract_fn(raw_text)
+    except Exception:
+        extracted = None
+        extraction_issues = [
+            {
+                "code": "EXTRACTION_FAILED",
+                "message": "The invoice could not be extracted from the PDF text.",
+            }
+        ]
+
+    invoice_data = _extracted_invoice_dict(extracted)
+
+    if invoice_data is None:
+        source = InvoiceSource(
+            source_type="pdf_file",
+            source_reference=file_name,
+            content_hash=content_hash,
+            invoice_number=None,
+            status="extraction_failed",
+            processing_result_id=None,
+        )
+        session.add(source)
+        session.commit()
+        return _pdf_ingestion_result(
+            ingestion_id=source.id,
+            source_reference=file_name,
+            content_hash=content_hash,
+            status="extraction_failed",
+            extraction_issues=extraction_issues
+            or [
+                {
+                    "code": "EXTRACTION_FAILED",
+                    "message": "The invoice could not be extracted from the PDF text.",
+                }
+            ],
+        )
+
+    processing_result = process_invoice(session, invoice_data)
+
+    source = InvoiceSource(
+        source_type="pdf_file",
+        source_reference=file_name,
+        content_hash=content_hash,
+        invoice_number=processing_result.get("invoice_number"),
+        status="ingested",
+        processing_result_id=processing_result.get("id"),
+    )
+    session.add(source)
+    session.commit()
+
+    return _pdf_ingestion_result(
+        ingestion_id=source.id,
+        source_reference=file_name,
+        content_hash=content_hash,
+        status="ingested",
+        processing_result_id=processing_result.get("id"),
+        processing_result=processing_result,
+        extraction_issues=None,
     )

@@ -110,6 +110,7 @@ pre {
   white-space: pre-wrap;
 }
 
-#result-issues:empty::before {
+#result-issues:empty::before,
+#result-extraction-issues:empty::before {
   content: "No issues.";
 }

@@ -1,13 +1,15 @@
 Built:
 - Vendor matching by exact normalized canonical name or explicit alias, with unmatched and ambiguous outcomes.
 - Purchase-order matching by PO number, including ownership verification against the matched vendor.
-- Invoice processing service (`process_invoice`) that matches vendor and PO, checks currency, and reconciles the invoice.
-- Reconciliation integration: line-item and total checks run after a successful match; issues are returned without stopping processing.
-- Result persistence: one `InvoiceProcessingResult` row per call, storing invoice number, nullable vendor/PO IDs, status, and issues JSON. The raw invoice payload is not saved yet.
+- Invoice processing service (`process_invoice`) that validates headers, matches vendor and PO, checks currency, and reconciles the invoice.
+- JSON file ingestion and a local FastAPI JSON API, both persisting `InvoiceSource` plus `InvoiceProcessingResult`.
+- Local single-page UI for JSON invoice submission, PDF upload, result inspection, and processing-result lookup.
+- PDF ingestion for text-based PDFs: extract text with PyMuPDF, draft-extract fields with an LLM using OPENAI_API_KEY from `.env`, then run the existing validation/matching/reconciliation pipeline.
 
 Tests:
-- 26 isolated tests: reconciliation (10), vendor matching (6), PO matching (3), and invoice processing (7).
+- Isolated in-memory SQLite tests covering matching, validation, reconciliation, JSON ingestion, the JSON API, the UI shell, and PDF ingestion. PDF tests use a fake extractor and do not call OpenAI.
 
 Unfinished:
-- Raw invoice payload is not stored.
-- No invoice-processing API, AI extraction, or review workflow yet.
+- Scanned or image-only PDFs are not supported; they need OCR or another extraction approach.
+- LLM extraction is draft extraction only and still depends on validation, matching, and reconciliation.
+- No authentication, review workflow, or production deployment path.

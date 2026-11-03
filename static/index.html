@@ -74,6 +74,18 @@
         </form>
       </section>
 
+      <section id="pdf-upload-section" aria-labelledby="pdf-upload-heading">
+        <h2 id="pdf-upload-heading">PDF invoice</h2>
+        <p>Text-based PDFs only. Scanned or image-only PDFs are not supported.</p>
+        <form id="pdf-form">
+          <div class="field">
+            <label for="pdf-file">PDF file</label>
+            <input id="pdf-file" name="file" type="file" accept=".pdf,application/pdf" required>
+          </div>
+          <button type="submit" id="submit-pdf">Submit PDF invoice</button>
+        </form>
+      </section>
+
       <section id="result-panel" aria-labelledby="result-heading">
         <h2 id="result-heading">Result</h2>
         <p id="result-message" class="status-message" aria-live="polite">
@@ -105,6 +117,8 @@
             <dd id="result-po-id"></dd>
           </div>
         </dl>
+        <h3>Extraction issues</h3>
+        <ul id="result-extraction-issues"></ul>
         <h3>Reconciliation issues</h3>
         <ul id="result-issues"></ul>
         <details id="result-json-details">
