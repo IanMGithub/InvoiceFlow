@@ -28,6 +28,8 @@ const addLineItemButton = document.getElementById("add-line-item");
 const submitButton = document.getElementById("submit-invoice");
 const loadSampleButton = document.getElementById("load-sample");
 const lookupForm = document.getElementById("lookup-form");
+const pdfForm = document.getElementById("pdf-form");
+const pdfSubmitButton = document.getElementById("submit-pdf");
 
 let lineItemCount = 1;
 
@@ -128,8 +130,7 @@ function displayValue(value) {
   return String(value);
 }
 
-function renderIssues(issues) {
-  const list = document.getElementById("result-issues");
+function renderIssues(list, issues) {
   list.innerHTML = "";
   if (!Array.isArray(issues) || issues.length === 0) {
     return;
@@ -141,12 +142,12 @@ function renderIssues(issues) {
   });
 }
 
-function statusKind(httpStatus) {
+function statusKind(httpStatus, body) {
+  if (httpStatus === 409 || (body && body.status === "duplicate")) {
+    return "warning";
+  }
   if (httpStatus === 200) {
     return "success";
-  }
-  if (httpStatus === 409) {
-    return "warning";
   }
   return "error";
 }
@@ -173,7 +174,14 @@ function showResult(httpStatus, body) {
   document.getElementById("result-po-id").textContent = displayValue(
     processing.purchase_order_id
   );
-  renderIssues(processing.issues || []);
+  renderIssues(
+    document.getElementById("result-extraction-issues"),
+    body.extraction_issues || []
+  );
+  renderIssues(
+    document.getElementById("result-issues"),
+    processing.issues || []
+  );
   document.getElementById("result-json").textContent = JSON.stringify(
     body,
     null,
@@ -181,14 +189,20 @@ function showResult(httpStatus, body) {
   );
 
   let messageText = "Invoice submitted.";
-  if (httpStatus === 409) {
+  if (httpStatus === 409 || body.status === "duplicate") {
     messageText = body.detail || "This invoice content has already been ingested.";
+  } else if (body.status === "extraction_failed") {
+    messageText = "PDF extraction failed. The file needs review.";
   } else if (httpStatus === 422) {
     messageText = "The invoice could not be submitted because some fields are invalid.";
+  } else if (httpStatus === 413) {
+    messageText = body.detail || "The PDF is larger than the 10 MB limit.";
+  } else if (httpStatus === 415) {
+    messageText = body.detail || "Only PDF files are accepted.";
   } else if (httpStatus >= 400) {
     messageText = body.detail || "The request failed.";
   }
-  setStatusMessage(message, messageText, statusKind(httpStatus));
+  setStatusMessage(message, messageText, statusKind(httpStatus, body));
 }
 
 form.addEventListener("submit", async function (event) {
@@ -212,6 +226,7 @@ form.addEventListener("submit", async function (event) {
     showResult(response.status, body);
   } catch (error) {
     document.getElementById("result-summary").hidden = true;
+    document.getElementById("result-extraction-issues").innerHTML = "";
     document.getElementById("result-issues").innerHTML = "";
     document.getElementById("result-json").textContent = "";
     setStatusMessage(
@@ -221,6 +236,52 @@ form.addEventListener("submit", async function (event) {
     );
   } finally {
     submitButton.disabled = false;
+  }
+});
+
+pdfForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  const fileInput = document.getElementById("pdf-file");
+  const selectedFile = fileInput.files && fileInput.files[0];
+
+  if (!selectedFile) {
+    setStatusMessage(
+      document.getElementById("result-message"),
+      "Choose a PDF file before submitting.",
+      "error"
+    );
+    return;
+  }
+
+  pdfSubmitButton.disabled = true;
+  setStatusMessage(
+    document.getElementById("result-message"),
+    "Submitting PDF invoice...",
+    null
+  );
+
+  const formData = new FormData();
+  formData.append("file", selectedFile);
+
+  try {
+    const response = await fetch("/invoices/pdf", {
+      method: "POST",
+      body: formData,
+    });
+    const body = await response.json();
+    showResult(response.status, body);
+  } catch (error) {
+    document.getElementById("result-summary").hidden = true;
+    document.getElementById("result-extraction-issues").innerHTML = "";
+    document.getElementById("result-issues").innerHTML = "";
+    document.getElementById("result-json").textContent = "";
+    setStatusMessage(
+      document.getElementById("result-message"),
+      "The API is unavailable. Start the local server and try again.",
+      "error"
+    );
+  } finally {
+    pdfSubmitButton.disabled = false;
   }
 });
 

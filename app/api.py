@@ -3,7 +3,8 @@ import json
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Request
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,10 +13,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import Base, engine
+from app.ingestion import ingest_invoice_pdf
 from app.invoice_processing import process_invoice
 from app.models import InvoiceProcessingResult, InvoiceSource
 
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+MAX_PDF_BYTES = 10 * 1024 * 1024
 
 
 app = FastAPI(
@@ -162,6 +167,41 @@ def submit_invoice(invoice: InvoiceRequest, session: SessionDep):
         "status": source.status,
         "processing_result": processing_result,
     }
+
+
+def _is_pdf_filename(file_name: str) -> bool:
+    return isinstance(file_name, str) and file_name.lower().endswith(".pdf")
+
+
+@app.post("/invoices/pdf")
+def submit_pdf_invoice(
+    session: SessionDep,
+    file: UploadFile = File(...),
+):
+    file_name = file.filename or ""
+
+    if not _is_pdf_filename(file_name):
+        return _error_response(
+            415,
+            "Only PDF files are accepted.",
+            "UNSUPPORTED_MEDIA_TYPE",
+        )
+
+    file_bytes = file.file.read()
+
+    if len(file_bytes) > MAX_PDF_BYTES:
+        return _error_response(
+            413,
+            "PDF file exceeds the 10 MB size limit.",
+            "PAYLOAD_TOO_LARGE",
+        )
+
+    result = ingest_invoice_pdf(session, file_name, file_bytes)
+
+    if result["status"] == "extraction_failed":
+        return JSONResponse(status_code=422, content=result)
+
+    return result
 
 
 @app.get("/processing-results/{processing_result_id}")
